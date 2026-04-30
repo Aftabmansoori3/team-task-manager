@@ -10,7 +10,7 @@ const { sequelize } = require('./models');
 const { testConnection } = require('./config/db');
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 8080;
 
 // middleware
 app.use(cors());
