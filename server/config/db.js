@@ -2,9 +2,12 @@ const { Sequelize } = require('sequelize');
 
 let sequelize;
 
-// Railway provides MYSQL_URL - use it if available, otherwise fall back to separate vars
-if (process.env.MYSQL_URL) {
-  sequelize = new Sequelize(process.env.MYSQL_URL, {
+// Railway can use different variable names for the MySQL connection string
+const dbUrl = process.env.MYSQL_URL || process.env.MYSQL_PRIVATE_URL || process.env.MYSQL_PUBLIC_URL || process.env.DATABASE_URL;
+
+if (dbUrl) {
+  console.log('Using connection string (MYSQL_URL or similar)');
+  sequelize = new Sequelize(dbUrl, {
     dialect: 'mysql',
     logging: process.env.NODE_ENV === 'development' ? console.log : false,
     pool: { max: 10, min: 0, acquire: 30000, idle: 10000 },
