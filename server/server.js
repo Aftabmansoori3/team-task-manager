@@ -1,4 +1,7 @@
-require('dotenv').config();
+// only load .env file in development
+if (process.env.NODE_ENV !== 'production') {
+  require('dotenv').config();
+}
 
 const express = require('express');
 const cors = require('cors');
@@ -17,40 +20,49 @@ app.use(express.urlencoded({ extended: true }));
 // serve frontend
 app.use(express.static(path.join(__dirname, '..', 'client')));
 
+// health check - keep this first
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', port: PORT, timestamp: new Date().toISOString() });
+});
+
 // api routes
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/projects', require('./routes/projects'));
 app.use('/api/tasks', require('./routes/tasks'));
 app.use('/api/dashboard', require('./routes/dashboard'));
 
-// health check
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+// 404 for unmatched API routes
+app.all('/api/*', (req, res) => {
+  res.status(404).json({ message: 'API endpoint not found' });
 });
 
 // SPA fallback - serve index.html for non-API routes
 app.get('*', (req, res) => {
-  if (!req.path.startsWith('/api')) {
-    res.sendFile(path.join(__dirname, '..', 'client', 'index.html'));
-  }
+  res.sendFile(path.join(__dirname, '..', 'client', 'index.html'));
 });
 
-// basic error handler for unmatched API routes
-app.use('/api/*', (req, res) => {
-  res.status(404).json({ message: 'API endpoint not found' });
+// global error handler
+app.use((err, req, res, next) => {
+  console.error('[UNHANDLED ERROR]', err.message);
+  res.status(500).json({ message: 'Something went wrong' });
 });
 
 const start = async () => {
   try {
     await testConnection();
 
-    // sync database - force: false means it won't drop tables
     await sequelize.sync({ alter: process.env.NODE_ENV === 'development' });
     console.log('✓ Database synced');
 
-    app.listen(PORT, '0.0.0.0', () => {
-      console.log(`\n🚀 Server running on http://localhost:${PORT}`);
+    const server = app.listen(PORT, '0.0.0.0', () => {
+      console.log(`\n🚀 Server running on http://0.0.0.0:${PORT}`);
       console.log(`   Environment: ${process.env.NODE_ENV || 'development'}\n`);
+    });
+
+    // handle graceful shutdown
+    process.on('SIGTERM', () => {
+      console.log('SIGTERM received, shutting down...');
+      server.close(() => process.exit(0));
     });
   } catch (err) {
     console.error('Failed to start server:', err);
