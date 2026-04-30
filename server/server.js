@@ -28,14 +28,15 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// SPA fallback - serve index.html for non-API routes
-app.get('*', (req, res) => {
+// SPA fallback (important fix)
+app.get('*', (req, res, next) => {
   if (!req.path.startsWith('/api')) {
-    res.sendFile(path.join(__dirname, '..', 'client', 'index.html'));
+    return res.sendFile(path.join(__dirname, '..', 'client', 'index.html'));
   }
+  next();
 });
 
-// basic error handler for unmatched API routes
+// API 404 handler
 app.use('/api/*', (req, res) => {
   res.status(404).json({ message: 'API endpoint not found' });
 });
@@ -44,14 +45,15 @@ const start = async () => {
   try {
     await testConnection();
 
-    // sync database - force: false means it won't drop tables
     await sequelize.sync({ alter: process.env.NODE_ENV === 'development' });
     console.log('✓ Database synced');
 
-    app.listen(PORT, '0.0.0.0', () => {
-      console.log(`\n🚀 Server running on http://localhost:${PORT}`);
-      console.log(`   Environment: ${process.env.NODE_ENV || 'development'}\n`);
+    // ✅ FIXED LISTEN (Railway compatible)
+    app.listen(PORT, () => {
+      console.log(`🚀 Server running on port ${PORT}`);
+      console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
     });
+
   } catch (err) {
     console.error('Failed to start server:', err);
     process.exit(1);
