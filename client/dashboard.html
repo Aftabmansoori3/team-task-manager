@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Your TaskFlow dashboard — see task stats, status breakdown, and overdue items at a glance.">
+  <title>Dashboard — TaskFlow</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <button class="mobile-toggle" id="mobileToggle">☰</button>
+  <div class="app-layout">
+    <aside class="sidebar" id="sidebar"></aside>
+    <main class="main-content">
+      <div class="page-header">
+        <div>
+          <h1>Dashboard</h1>
+          <p>Overview of your tasks and projects</p>
+        </div>
+        <a href="/projects.html" class="btn btn-secondary btn-sm">View Projects →</a>
+      </div>
+
+      <div class="stats-grid" id="statsGrid">
+        <div class="loader"><div class="spinner"></div></div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h3>Status Breakdown</h3>
+        </div>
+        <div id="statusBar"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h3>⚠️ Overdue Tasks</h3>
+        </div>
+        <div id="overdueList">
+          <div class="loader"><div class="spinner"></div></div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/app.js"></script>
+  <script src="/js/dashboard.js"></script>
+</body>
+</html>
