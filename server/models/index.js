@@ -2,6 +2,7 @@ const { sequelize } = require('../config/db');
 const User = require('./User');
 const Project = require('./Project');
 const Task = require('./Task');
+const TaskActivity = require('./TaskActivity')(sequelize);
 
 // --- Associations ---
 
@@ -40,10 +41,19 @@ Task.belongsTo(User, { foreignKey: 'assigned_to', as: 'assignee' });
 User.hasMany(Task, { foreignKey: 'created_by', as: 'createdTasks' });
 Task.belongsTo(User, { foreignKey: 'created_by', as: 'creator' });
 
+// Task <-> TaskActivity
+Task.hasMany(TaskActivity, { foreignKey: 'task_id', as: 'activities' });
+TaskActivity.belongsTo(Task, { foreignKey: 'task_id' });
+
+// TaskActivity -> User (who performed the action)
+User.hasMany(TaskActivity, { foreignKey: 'user_id' });
+TaskActivity.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
+
 module.exports = {
   sequelize,
   User,
   Project,
   Task,
-  ProjectMember
+  ProjectMember,
+  TaskActivity
 };

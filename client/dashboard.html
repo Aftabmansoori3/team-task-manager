@@ -6,6 +6,7 @@
   <meta name="description" content="Your TaskFlow dashboard — see task stats, status breakdown, and overdue items at a glance.">
   <title>Dashboard — TaskFlow</title>
   <link rel="stylesheet" href="/css/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
   <button class="mobile-toggle" id="mobileToggle">☰</button>
@@ -26,9 +27,16 @@
 
       <div class="card">
         <div class="card-header">
-          <h3>Status Breakdown</h3>
+          <h3>Status & Priority Analytics</h3>
         </div>
-        <div id="statusBar"></div>
+        <div class="charts-container" style="display: flex; gap: 24px; flex-wrap: wrap;">
+          <div style="flex: 1; min-width: 300px; max-width: 400px; margin: 0 auto;">
+            <canvas id="statusChart"></canvas>
+          </div>
+          <div style="flex: 1; min-width: 300px; max-width: 400px; margin: 0 auto;">
+            <canvas id="priorityChart"></canvas>
+          </div>
+        </div>
       </div>
 
       <div class="card">

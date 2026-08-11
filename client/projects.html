@@ -12,13 +12,15 @@
   <div class="app-layout">
     <aside class="sidebar" id="sidebar"></aside>
     <main class="main-content">
-      <div class="page-header">
+      <div class="page-header" style="margin-bottom: 16px;">
         <div>
           <h1>Projects</h1>
           <p>Manage your team's projects</p>
         </div>
         <button class="btn btn-primary btn-sm" id="createProjectBtn">+ New Project</button>
       </div>
+
+      <input type="text" id="projectSearch" class="form-group input" placeholder="Search projects..." oninput="filterProjects()" style="width: 100%; max-width: 320px; padding: 12px 14px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--bg-input); color: var(--text-primary); margin-bottom: 24px;">
 
       <div class="projects-grid" id="projectsGrid">
         <div class="loader"><div class="spinner"></div></div>

@@ -1,6 +1,17 @@
 let currentProject = null;
 let projectMembers = [];
 let allUsers = [];
+let socket;
+
+function escHtml(unsafe) {
+  if (!unsafe) return '';
+  return unsafe.toString()
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+}
 
 document.addEventListener('DOMContentLoaded', async () => {
   if (!app.init()) return;
@@ -21,8 +32,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     allUsers = usersData.users;
     projectMembers = currentProject.members || [];
 
+    // Initialize socket connection
+    if (window.io) {
+      socket = io();
+      socket.on('taskCreated', data => { if (data.projectId == projectId) { loadTasks(); loadActivities(); } });
+      socket.on('taskUpdated', data => { if (data.projectId == projectId) { loadTasks(); loadActivities(); } });
+      socket.on('taskDeleted', data => { if (data.projectId == projectId) { loadTasks(); loadActivities(); } });
+    }
+
     renderProjectHeader();
     await loadTasks();
+    await loadActivities();
   } catch (err) {
     app.toast(err.message, 'error');
   }
@@ -62,13 +82,15 @@ function renderTaskColumns(tasks, container) {
   });
 
   container.innerHTML = Object.entries(groups).map(([status, items]) => `
-    <div class="task-column">
+    <div class="task-column" ondragover="allowDrop(event)" ondrop="drop(event, '${status}')" data-status="${status}">
       <div class="task-column-header">
         <h3><span class="badge ${app.statusBadgeClass(status)}">${app.statusLabel(status)}</span></h3>
         <span class="column-count">${items.length}</span>
       </div>
-      ${items.length === 0 ? '<div class="empty-state"><p>No tasks</p></div>' :
-        items.map(t => renderTaskCard(t)).join('')}
+      <div class="column-content" style="min-height: 100px;">
+        ${items.length === 0 ? '<div class="empty-state" style="pointer-events:none;"><p>No tasks</p></div>' :
+          items.map(t => renderTaskCard(t)).join('')}
+      </div>
     </div>
   `).join('');
 }
@@ -76,7 +98,7 @@ function renderTaskColumns(tasks, container) {
 function renderTaskCard(task) {
   const overdue = task.status !== 'done' && app.isOverdue(task.due_date);
   return `
-    <div class="task-card" onclick="openTaskDetail(${task.id})">
+    <div class="task-card" draggable="true" ondragstart="dragStart(event, ${task.id})" onclick="openTaskDetail(${task.id})">
       <div class="task-title">${escHtml(task.title)}</div>
       <div class="task-meta">
         <span class="badge ${app.priorityBadgeClass(task.priority)}">${task.priority}</span>
@@ -336,4 +358,54 @@ function escHtml(str) {
   const div = document.createElement('div');
   div.textContent = str || '';
   return div.innerHTML;
+}
+
+// --- Drag & Drop Kanban ---
+function dragStart(event, taskId) {
+  event.dataTransfer.setData("taskId", taskId);
+}
+
+function allowDrop(event) {
+  event.preventDefault();
+}
+
+async function drop(event, newStatus) {
+  event.preventDefault();
+  const taskId = event.dataTransfer.getData("taskId");
+  if (!taskId) return;
+  
+  try {
+    await api.put(`/tasks/${taskId}`, { status: newStatus });
+    await loadTasks();
+  } catch (err) {
+    app.toast('Failed to move task: ' + err.message, 'error');
+  }
+}
+
+async function loadActivities() {
+  const container = document.getElementById('activityLogContainer');
+  if (!container) return;
+  try {
+    const data = await api.get(`/projects/${currentProject.id}/activities`);
+    renderActivities(data.activities, container);
+  } catch (err) {
+    console.error('Failed to load activities', err);
+  }
+}
+
+function renderActivities(activities, container) {
+  if (!activities || activities.length === 0) {
+    container.innerHTML = '<p style="color:var(--text-muted);font-size:0.85rem;padding:12px;">No recent activity.</p>';
+    return;
+  }
+  container.innerHTML = activities.map(a => `
+    <div style="padding: 10px; border-bottom: 1px solid var(--border); font-size: 0.85rem;">
+      <strong style="color:var(--text-primary)">${a.user ? a.user.name : 'Someone'}</strong> 
+      <span style="color:var(--text-muted)">${a.action}</span> on 
+      <strong style="color:var(--accent)">${a.taskTitle}</strong>
+      <div style="font-size: 0.7rem; color:var(--text-muted); margin-top:4px;">
+        ${app.formatDate(a.createdAt)}
+      </div>
+    </div>
+  `).join('');
 }
