@@ -4,6 +4,9 @@ const app = {
   user: null,
 
   init() {
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme === 'dark') document.body.classList.add('dark-theme');
+
     const stored = localStorage.getItem('user');
     if (stored) {
       try { this.user = JSON.parse(stored); } catch (e) { /* corrupted */ }
@@ -16,6 +19,17 @@ const app = {
 
     this.renderSidebar();
     this.setupMobileNav();
+
+    document.addEventListener("mousemove", e => {
+      document.querySelectorAll(".card, .project-card, .stat-card").forEach(card => {
+        const rect = card.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        card.style.setProperty("--mouse-x", `${x}px`);
+        card.style.setProperty("--mouse-y", `${y}px`);
+      });
+    });
+
     return true;
   },
 
@@ -58,9 +72,19 @@ const app = {
             <div class="role">${this.user ? this.user.role : ''}</div>
           </div>
         </div>
+        <button class="btn btn-secondary btn-sm btn-block mt-16" onclick="app.toggleTheme()" id="themeToggleBtn">
+          ${document.body.classList.contains('dark-theme') ? '☀️ Light Mode' : '🌙 Dark Mode'}
+        </button>
         <button class="btn btn-secondary btn-sm btn-block mt-16" onclick="app.logout()" id="logoutBtn">Sign Out</button>
       </div>
     `;
+  },
+
+  toggleTheme() {
+    const isDark = document.body.classList.toggle('dark-theme');
+    localStorage.setItem('theme', isDark ? 'dark' : 'light');
+    const btn = document.getElementById('themeToggleBtn');
+    if (btn) btn.innerHTML = isDark ? '☀️ Light Mode' : '🌙 Dark Mode';
   },
 
   setupMobileNav() {

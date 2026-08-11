@@ -1,3 +1,4 @@
+let allProjects = [];
 document.addEventListener('DOMContentLoaded', async () => {
   if (!app.init()) return;
 
@@ -20,7 +21,8 @@ async function loadProjects(grid) {
   app.showLoader(grid);
   try {
     const data = await api.get('/projects');
-    renderProjects(data.projects, grid);
+    allProjects = data.projects;
+    renderProjects(allProjects, grid);
   } catch (err) {
     app.toast(err.message, 'error');
     grid.innerHTML = '<div class="empty-state"><h3>Failed to load projects</h3></div>';
@@ -61,6 +63,16 @@ function renderProjects(projects, grid) {
         </div>
       </div>`;
   }).join('');
+}
+
+function filterProjects() {
+  const searchTerm = document.getElementById('projectSearch').value.toLowerCase();
+  const grid = document.getElementById('projectsGrid');
+  const filtered = allProjects.filter(p => 
+    p.name.toLowerCase().includes(searchTerm) || 
+    (p.description && p.description.toLowerCase().includes(searchTerm))
+  );
+  renderProjects(filtered, grid);
 }
 
 function openProjectModal() {

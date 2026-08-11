@@ -8,7 +8,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   try {
     const data = await api.get('/dashboard/stats');
     renderStats(data.stats, statsContainer);
-    renderStatusBar(data.stats, breakdownBar);
+    if (window.Chart) {
+      renderCharts(data.stats, data.priorities);
+    }
     renderOverdue(data.overdueTasks, overdueContainer);
   } catch (err) {
     app.toast(err.message, 'error');
@@ -40,27 +42,54 @@ function renderStats(stats, container) {
   `;
 }
 
-function renderStatusBar(stats, container) {
-  if (stats.total === 0) {
-    container.innerHTML = '<div class="status-bar"><div class="segment" style="width:100%;background:var(--bg-elevated)"></div></div>';
-    return;
-  }
-  const todoPct = (stats.todo / stats.total * 100).toFixed(1);
-  const progPct = (stats['in-progress'] / stats.total * 100).toFixed(1);
-  const donePct = (stats.done / stats.total * 100).toFixed(1);
+function renderCharts(stats, priorities) {
+  const statusCtx = document.getElementById('statusChart').getContext('2d');
+  const priorityCtx = document.getElementById('priorityChart').getContext('2d');
 
-  container.innerHTML = `
-    <div class="status-bar">
-      <div class="segment seg-todo" style="width:${todoPct}%" title="To Do: ${stats.todo}"></div>
-      <div class="segment seg-progress" style="width:${progPct}%" title="In Progress: ${stats['in-progress']}"></div>
-      <div class="segment seg-done" style="width:${donePct}%" title="Done: ${stats.done}"></div>
-    </div>
-    <div style="display:flex;gap:16px;margin-top:8px;font-size:0.78rem;color:var(--text-muted)">
-      <span><span style="color:var(--info)">●</span> To Do ${todoPct}%</span>
-      <span><span style="color:var(--warning)">●</span> In Progress ${progPct}%</span>
-      <span><span style="color:var(--success)">●</span> Done ${donePct}%</span>
-    </div>
-  `;
+  const textColor = document.body.classList.contains('dark-theme') ? '#e2e8f0' : '#475569';
+  Chart.defaults.color = textColor;
+  Chart.defaults.font.family = 'inherit';
+
+  new Chart(statusCtx, {
+    type: 'doughnut',
+    data: {
+      labels: ['To Do', 'In Progress', 'Done'],
+      datasets: [{
+        data: [stats.todo, stats['in-progress'], stats.done],
+        backgroundColor: ['#3b82f6', '#f59e0b', '#10b981'],
+        borderWidth: 0,
+        hoverOffset: 4
+      }]
+    },
+    options: {
+      plugins: {
+        title: { display: true, text: 'Tasks by Status' }
+      }
+    }
+  });
+
+  new Chart(priorityCtx, {
+    type: 'bar',
+    data: {
+      labels: ['Low', 'Medium', 'High'],
+      datasets: [{
+        label: 'Task Count',
+        data: [priorities?.low || 0, priorities?.medium || 0, priorities?.high || 0],
+        backgroundColor: ['#94a3b8', '#f59e0b', '#ef4444'],
+        borderRadius: 4
+      }]
+    },
+    options: {
+      scales: {
+        y: { beginAtZero: true },
+        x: { }
+      },
+      plugins: {
+        legend: { display: false },
+        title: { display: true, text: 'Tasks by Priority' }
+      }
+    }
+  });
 }
 
 function renderOverdue(tasks, container) {

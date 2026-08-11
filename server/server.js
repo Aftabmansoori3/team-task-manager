@@ -6,14 +6,23 @@ if (process.env.NODE_ENV !== 'production') {
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const http = require('http');
 const { sequelize } = require('./models');
 const { testConnection } = require('./config/db');
+const socketIO = require('./utils/socket');
 
 const app = express();
+const httpServer = http.createServer(app);
 const PORT = process.env.PORT || 8080;
 
 // middleware
-app.use(cors());
+const corsOptions = {
+  origin: process.env.NODE_ENV === 'production' 
+    ? process.env.FRONTEND_URL 
+    : '*',
+  credentials: true
+};
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -54,7 +63,15 @@ const start = async () => {
     await sequelize.sync({ alter: process.env.NODE_ENV === 'development' });
     console.log('✓ Database synced');
 
-    const server = app.listen(PORT, '0.0.0.0', () => {
+    const io = socketIO.init(httpServer);
+    io.on('connection', socket => {
+      console.log('New client connected:', socket.id);
+      socket.on('disconnect', () => {
+        console.log('Client disconnected:', socket.id);
+      });
+    });
+
+    const server = httpServer.listen(PORT, '0.0.0.0', () => {
       console.log(`\n🚀 Server running on http://0.0.0.0:${PORT}`);
       console.log(`   Environment: ${process.env.NODE_ENV || 'development'}\n`);
     });

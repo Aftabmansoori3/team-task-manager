@@ -1,5 +1,6 @@
 const { body, validationResult } = require('express-validator');
-const { Task, User, Project } = require('../models');
+const { Task, User, Project, TaskActivity } = require('../models');
+const socketIO = require('../utils/socket');
 const { handleError } = require('../utils/errorHandler');
 
 const taskValidation = [
@@ -87,6 +88,18 @@ const createTask = async (req, res) => {
       ]
     });
 
+    await TaskActivity.create({
+      task_id: task.id,
+      user_id: req.user.id,
+      action: 'Task created'
+    });
+
+    try {
+      socketIO.getIO().emit('taskCreated', { task: fullTask, projectId });
+    } catch (e) {
+      console.log('Socket error', e);
+    }
+
     console.log(`[TASK] Created "${title}" in project ${projectId}`);
 
     res.status(201).json({ task: fullTask });
@@ -104,14 +117,36 @@ const updateTask = async (req, res) => {
 
     const { title, description, assignedTo, status, priority, dueDate } = req.body;
 
+    let statusChanged = false;
+    let oldStatus = task.status;
+
     if (title !== undefined) task.title = title;
     if (description !== undefined) task.description = description;
     if (assignedTo !== undefined) task.assigned_to = assignedTo;
-    if (status !== undefined) task.status = status;
+    if (status !== undefined) {
+      if (task.status !== status) {
+        statusChanged = true;
+      }
+      task.status = status;
+    }
     if (priority !== undefined) task.priority = priority;
     if (dueDate !== undefined) task.due_date = dueDate;
 
     await task.save();
+
+    if (statusChanged) {
+      await TaskActivity.create({
+        task_id: task.id,
+        user_id: req.user.id,
+        action: `Moved task from ${oldStatus} to ${task.status}`
+      });
+    } else {
+      await TaskActivity.create({
+        task_id: task.id,
+        user_id: req.user.id,
+        action: 'Updated task details'
+      });
+    }
 
     const updatedTask = await Task.findByPk(task.id, {
       include: [
@@ -119,6 +154,12 @@ const updateTask = async (req, res) => {
         { model: User, as: 'creator', attributes: ['id', 'name'] }
       ]
     });
+
+    try {
+      socketIO.getIO().emit('taskUpdated', { task: updatedTask, projectId: updatedTask.project_id });
+    } catch (e) {
+      console.log('Socket error', e);
+    }
 
     res.json({ task: updatedTask });
   } catch (err) {
@@ -138,11 +179,31 @@ const deleteTask = async (req, res) => {
       return res.status(403).json({ message: 'Only the task creator or admin can delete this' });
     }
 
+    const projectId = task.project_id;
     await task.destroy();
+
+    try {
+      socketIO.getIO().emit('taskDeleted', { taskId: req.params.id, projectId });
+    } catch (e) {
+      console.log('Socket error', e);
+    }
 
     res.json({ message: 'Task deleted' });
   } catch (err) {
     handleError(res, err, 'Failed to delete task');
+  }
+};
+
+const getTaskActivities = async (req, res) => {
+  try {
+    const activities = await TaskActivity.findAll({
+      where: { task_id: req.params.id },
+      include: [{ model: User, as: 'user', attributes: ['id', 'name'] }],
+      order: [['createdAt', 'DESC']]
+    });
+    res.json({ activities });
+  } catch (err) {
+    handleError(res, err, 'Failed to fetch task activities');
   }
 };
 
@@ -152,5 +213,6 @@ module.exports = {
   createTask,
   updateTask,
   deleteTask,
+  getTaskActivities,
   taskValidation
 };

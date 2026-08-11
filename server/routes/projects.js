@@ -5,11 +5,13 @@ const {
   getProjects, getProject, createProject,
   updateProject, deleteProject,
   addMember, removeMember,
+  getProjectActivities,
   projectValidation
 } = require('../controllers/projectController');
 
 router.get('/', auth, getProjects);
 router.get('/:id', auth, getProject);
+router.get('/:id/activities', auth, getProjectActivities);
 router.post('/', auth, roleCheck('admin'), projectValidation, createProject);
 router.put('/:id', auth, updateProject);
 router.delete('/:id', auth, deleteProject);

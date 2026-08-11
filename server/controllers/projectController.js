@@ -1,5 +1,5 @@
 const { body, validationResult } = require('express-validator');
-const { Project, User, ProjectMember, Task } = require('../models');
+const { Project, User, ProjectMember, Task, TaskActivity } = require('../models');
 const { handleError } = require('../utils/errorHandler');
 
 const projectValidation = [
@@ -227,6 +227,35 @@ const removeMember = async (req, res) => {
   }
 };
 
+const getProjectActivities = async (req, res) => {
+  try {
+    const tasks = await Task.findAll({
+      where: { project_id: req.params.id },
+      attributes: ['id', 'title']
+    });
+    const taskIds = tasks.map(t => t.id);
+
+    const activities = await TaskActivity.findAll({
+      where: { task_id: taskIds },
+      include: [{ model: User, as: 'user', attributes: ['name'] }],
+      order: [['createdAt', 'DESC']],
+      limit: 20
+    });
+
+    const enrichedActivities = activities.map(a => {
+      const task = tasks.find(t => t.id === a.task_id);
+      return {
+        ...a.toJSON(),
+        taskTitle: task ? task.title : 'Unknown Task'
+      };
+    });
+
+    res.json({ activities: enrichedActivities });
+  } catch (err) {
+    handleError(res, err, 'Failed to fetch activities');
+  }
+};
+
 module.exports = {
   getProjects,
   getProject,
@@ -235,5 +264,6 @@ module.exports = {
   deleteProject,
   addMember,
   removeMember,
+  getProjectActivities,
   projectValidation
 };

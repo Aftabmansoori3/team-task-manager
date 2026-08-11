@@ -23,9 +23,19 @@
       <div class="task-columns" id="taskColumns">
         <div class="loader" style="grid-column:1/-1"><div class="spinner"></div></div>
       </div>
+
+      <div class="card" style="margin-top: 32px;">
+        <div class="card-header">
+          <h3>🕒 Recent Project Activity</h3>
+        </div>
+        <div id="activityLogContainer" style="max-height: 250px; overflow-y: auto;">
+          <p style="color:var(--text-muted);font-size:0.85rem;">Activity log will appear here...</p>
+        </div>
+      </div>
     </main>
   </div>
 
+  <script src="/socket.io/socket.io.js"></script>
   <script src="/js/api.js"></script>
   <script src="/js/app.js"></script>
   <script src="/js/tasks.js"></script>

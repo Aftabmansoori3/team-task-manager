@@ -3,29 +3,50 @@
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
 :root {
+  /* Premium Light Theme (Default) */
+  --bg-primary: #f8f9fa; /* Cream/Soft White */
+  --bg-secondary: #ffffff;
+  --bg-card: rgba(255, 255, 255, 0.85); /* Glassmorphism */
+  --bg-elevated: #f1f5f9;
+  --bg-input: #ffffff;
+  --border: rgba(0, 0, 0, 0.06);
+  --border-focus: rgba(99, 102, 241, 0.4);
+  --text-primary: #1e293b;
+  --text-secondary: #475569;
+  --text-muted: #94a3b8;
+  --accent: #4f46e5;
+  --accent-hover: #4338ca;
+  --accent-glow: rgba(79, 70, 229, 0.1);
+  --gradient: linear-gradient(135deg, #4f46e5, #7c3aed);
+  --gradient-subtle: linear-gradient(135deg, rgba(79, 70, 229, 0.08), rgba(124, 58, 237, 0.08));
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --info: #3b82f6;
+  --radius: 14px;
+  --radius-sm: 8px;
+  --shadow: 0 8px 30px rgba(0, 0, 0, 0.04);
+  --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.dark-theme {
+  /* Dark Theme */
   --bg-primary: #0b0f1a;
   --bg-secondary: #111827;
   --bg-card: rgba(17, 24, 39, 0.7);
   --bg-elevated: #1f2937;
   --bg-input: #1a2332;
-  --border: rgba(255,255,255,0.07);
-  --border-focus: rgba(99,102,241,0.5);
+  --border: rgba(255, 255, 255, 0.07);
+  --border-focus: rgba(99, 102, 241, 0.5);
   --text-primary: #f1f5f9;
   --text-secondary: #94a3b8;
   --text-muted: #64748b;
   --accent: #6366f1;
   --accent-hover: #818cf8;
-  --accent-glow: rgba(99,102,241,0.15);
+  --accent-glow: rgba(99, 102, 241, 0.15);
   --gradient: linear-gradient(135deg, #6366f1, #8b5cf6);
-  --gradient-subtle: linear-gradient(135deg, rgba(99,102,241,0.1), rgba(139,92,246,0.1));
-  --success: #22c55e;
-  --warning: #f59e0b;
-  --danger: #ef4444;
-  --info: #3b82f6;
-  --radius: 12px;
-  --radius-sm: 8px;
-  --shadow: 0 4px 24px rgba(0,0,0,0.3);
-  --transition: all 0.2s ease;
+  --gradient-subtle: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(139, 92, 246, 0.1));
+  --shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
 }
 
 body {
@@ -34,6 +55,7 @@ body {
   color: var(--text-primary);
   line-height: 1.6;
   min-height: 100vh;
+  transition: background-color 0.4s ease, color 0.4s ease;
 }
 
 a { color: var(--accent); text-decoration: none; }
@@ -271,6 +293,12 @@ a:hover { color: var(--accent-hover); }
   margin-left: 260px;
   padding: 32px;
   min-height: 100vh;
+  animation: pageFadeIn 0.5s ease-out forwards;
+}
+
+@keyframes pageFadeIn {
+  0% { opacity: 0; transform: translateY(15px); }
+  100% { opacity: 1; transform: translateY(0); }
 }
 
 .page-header {
@@ -354,7 +382,7 @@ a:hover { color: var(--accent-hover); }
 .stat-card.overdue .value { color: var(--danger); }
 
 /* ===== CARDS ===== */
-.card {
+.card, .project-card, .stat-card {
   background: var(--bg-card);
   backdrop-filter: blur(12px);
   border: 1px solid var(--border);
@@ -362,9 +390,34 @@ a:hover { color: var(--accent-hover); }
   padding: 24px;
   margin-bottom: 20px;
   transition: var(--transition);
+  position: relative;
+  overflow: hidden;
 }
 
-.card:hover { border-color: rgba(255,255,255,0.1); }
+.card:hover, .project-card:hover, .stat-card:hover { 
+  border-color: rgba(99,102,241,0.2); 
+  transform: translateY(-2px);
+  box-shadow: var(--shadow);
+}
+
+/* Dynamic Glow Effect */
+.card::after, .project-card::after, .stat-card::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  opacity: 0;
+  transition: opacity 0.3s;
+  background: radial-gradient(600px circle at var(--mouse-x) var(--mouse-y), rgba(99, 102, 241, 0.08), transparent 40%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.card:hover::after, .project-card:hover::after, .stat-card:hover::after {
+  opacity: 1;
+}
 
 .card-header {
   display: flex;
