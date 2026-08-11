@@ -36,9 +36,12 @@ app.all('/api/*', (req, res) => {
   res.status(404).json({ message: 'API endpoint not found' });
 });
 
-// SPA fallback - serve index.html for non-API routes
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '..', 'client', 'index.html'));
+// SPA fallback (important fix)
+app.get('*', (req, res, next) => {
+  if (!req.path.startsWith('/api')) {
+    return res.sendFile(path.join(__dirname, '..', 'client', 'index.html'));
+  }
+  next();
 });
 
 // global error handler
@@ -54,6 +57,7 @@ const start = async () => {
     await sequelize.sync({ alter: process.env.NODE_ENV === 'development' });
     console.log('✓ Database synced');
 
+    // ✅ FIXED LISTEN (Railway compatible)
     const server = app.listen(PORT, '0.0.0.0', () => {
       console.log(`\n🚀 Server running on http://0.0.0.0:${PORT}`);
       console.log(`   Environment: ${process.env.NODE_ENV || 'development'}\n`);
