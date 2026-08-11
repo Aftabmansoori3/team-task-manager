@@ -1,7 +1,7 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { body, validationResult } = require('express-validator');
-const { User } = require('../models');
+const { User, Task } = require('../models');
 const { handleError } = require('../utils/errorHandler');
 
 const generateToken = (user) => {
@@ -113,11 +113,56 @@ const getAllUsers = async (req, res) => {
   }
 };
 
+// get team stats - admin only
+const getTeamStats = async (req, res) => {
+  try {
+    const users = await User.findAll({
+      attributes: ['id', 'name', 'email', 'role', 'createdAt'],
+      include: [
+        {
+          model: Task,
+          as: 'assignedTasks',
+          attributes: ['status']
+        }
+      ],
+      order: [['role', 'ASC'], ['name', 'ASC']]
+    });
+
+    // Format the response to calculate counts
+    const teamStats = users.map(user => {
+      const tasks = user.assignedTasks || [];
+      const totalTasks = tasks.length;
+      const completedTasks = tasks.filter(t => t.status === 'Done').length;
+      const inProgressTasks = tasks.filter(t => t.status === 'In Progress').length;
+      const todoTasks = tasks.filter(t => t.status === 'Todo').length;
+
+      return {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        joinedAt: user.createdAt,
+        stats: {
+          total: totalTasks,
+          completed: completedTasks,
+          inProgress: inProgressTasks,
+          todo: todoTasks
+        }
+      };
+    });
+
+    res.json({ teamStats });
+  } catch (err) {
+    handleError(res, err, 'Failed to fetch team stats');
+  }
+};
+
 module.exports = {
   register,
   login,
   getMe,
   getAllUsers,
+  getTeamStats,
   registerValidation,
   loginValidation
 };
